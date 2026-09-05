@@ -59,7 +59,4 @@ async def tavily_mcp_search(query):
         await get_tavily_search_tool()
 
     result = await tavily_search_tool.ainvoke({"query": query})
-
     return result
-    # print("Search result:")
-    # print(result)
