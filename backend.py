@@ -19,6 +19,21 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from tools.tavily_tool import tavily_search
 from tools.flight_tool import search_flights
 
+
+def _message_text(content) -> str:
+    """Normalize LangChain message content for API and UI consumers."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = [
+            item.get("text", "")
+            for item in content
+            if isinstance(item, dict) and item.get("text")
+        ]
+        return "\n".join(parts)
+    return str(content)
+
+
 # load environment variables from .env file
 load_dotenv()
 
@@ -130,7 +145,7 @@ Make the itinerary practical, budget-aware, and easy to follow.
     )
 
     return {
-        "itinerary": response.content[0]["text"],
+        "itinerary": _message_text(response.content),
         "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
@@ -237,7 +252,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         config=config,
     )
 
-    final_answer = result["messages"][-1].content[0]["text"]
+    final_answer = _message_text(result["messages"][-1].content)
 
     return {
         "thread_id": thread_id,
