@@ -24,6 +24,7 @@ dependencies = [
     "pycountry==26.2.16",
     "python-dotenv==1.2.2",
     "requests==2.34.2",
+    "streamlit==1.55.0",
     "tavily-python==0.7.24",
     "uvicorn==0.48.0",
 ]
