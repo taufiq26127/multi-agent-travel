@@ -130,7 +130,7 @@ Make the itinerary practical, budget-aware, and easy to follow.
     )
 
     return {
-        "itinerary": response.content,
+        "itinerary": response.content[0]["text"],
         "messages": [response],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
@@ -237,7 +237,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         config=config,
     )
 
-    final_answer = result["messages"][-1].content
+    final_answer = result["messages"][-1].content[0]["text"]
 
     return {
         "thread_id": thread_id,

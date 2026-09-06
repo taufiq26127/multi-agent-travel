@@ -7,9 +7,9 @@ from backend import run_travel_agent
 
 # res = search_flights("plan 7 days trip to japan from indonesia")
 # print(res)
-user_query = "Plan a 3 days trip to thailand from indonesia"
+user_query = "rencanakan perjalanan ke bali selama 5 hari dari jakarta, indonesia, termasuk penerbangan dan hotel"
 
-response = run_travel_agent(user_input=user_query, thread_id="test-user")
+response = run_travel_agent(user_input=user_query)
 
 print("Final Response:")
 print(response["answer"])
