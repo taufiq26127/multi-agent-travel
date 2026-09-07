@@ -60,7 +60,10 @@ async def tavily_mcp_search(query):
         await get_tavily_search_tool()
 
     response = await tavily_search_tool.ainvoke(
-        {"query": query, "max_results": 5, "search_depth": "basic"}
+        {
+            "query": query,
+            "max_results": 5,
+        }
     )
 
     # response berbentuk: [{"type": "text", "text": "<json string>", "id": "..."}]
