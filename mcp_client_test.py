@@ -1,3 +1,4 @@
+import json
 import os
 import asyncio
 import certifi
@@ -58,5 +59,34 @@ async def tavily_mcp_search(query):
     if tavily_search_tool is None:
         await get_tavily_search_tool()
 
-    result = await tavily_search_tool.ainvoke({"query": query})
-    return result
+    response = await tavily_search_tool.ainvoke(
+        {"query": query, "max_results": 5, "search_depth": "basic"}
+    )
+
+    # response berbentuk: [{"type": "text", "text": "<json string>", "id": "..."}]
+    if not response or not isinstance(response, list):
+        return "Tidak ada hasil pencarian ditemukan."
+
+    raw_text = response[0].get("text", "")
+
+    try:
+        data = json.loads(raw_text)
+    except (json.JSONDecodeError, TypeError):
+        return "Gagal memparsing hasil pencarian."
+
+    items = data.get("results", [])
+
+    if not items:
+        return "Tidak ada hasil pencarian ditemukan."
+
+    results = []
+    for i, r in enumerate(items, 1):
+        title = r.get("title", "Unknown Title")
+        url = r.get("url", "")
+        snippet = r.get("content", "")
+        if len(snippet) > 300:
+            snippet = snippet[:300].rsplit(" ", 1)[0] + "..."
+
+        results.append(f"{i}. {title}\nURL: {url}\nSnippet: {snippet}\n")
+
+    return "\n".join(results)
