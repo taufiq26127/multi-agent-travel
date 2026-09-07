@@ -4,6 +4,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
+import nest_asyncio
+
+nest_asyncio.apply()
+
 from backend import run_travel_agent
 
 
