@@ -24,6 +24,7 @@ class TravelResponse(BaseModel):
     answer: str
     flight_results: Any
     hotel_results: Any
+    weather_results: Any
     itinerary: Any
     llm_calls: int
 

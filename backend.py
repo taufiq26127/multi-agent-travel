@@ -19,7 +19,13 @@ from typing import TypedDict, Annotated
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 # from mcp_client_test import tavily_mcp_search
-from mcp_client import tavily_mcp_search, aviation_mcp_call
+from mcp_client import (
+    tavily_mcp_search,
+    aviation_mcp_call,
+    weather_mcp_search,
+    forecast_mcp_search,
+    extract_destination,
+)
 
 # from tools.tavily_tool import tavily_search
 # from tools.flight_tool import search_flights
@@ -87,6 +93,7 @@ class TravelState(TypedDict):
     hotel_results: str
     itinerary: str
     llm_calls: int
+    weather_results: str
 
 
 # =========================
@@ -169,15 +176,10 @@ def flight_agent(state: TravelState):
 
 
 def hotel_agent(state: TravelState):
-    print("\n INSIDE HOTEL AGENT \n")
-
     query = f"Best hotels for {state['user_query']}"
 
     try:
         hotels_data = asyncio.run(tavily_mcp_search(query))
-
-        print("\n[DEBUG] Raw hotels_data:", hotels_data)
-
         # bongkar wrapper MCP kalau bentuknya list [{'type': 'text', 'text': '...'}]
         if isinstance(hotels_data, list) and len(hotels_data) > 0:
             first_item = hotels_data[0]
@@ -212,6 +214,67 @@ def hotel_agent(state: TravelState):
 
 
 # =========================
+# Weather Agent
+# =========================
+
+
+def weather_agent(state: TravelState):
+    city = extract_destination(state["user_query"])
+
+    try:
+        res_weather = _message_text(asyncio.run(weather_mcp_search(city)))
+        res_forecast = asyncio.run(forecast_mcp_search(city))
+
+        weather_results = json.loads(res_weather)
+
+        weather_data = []
+        for key, value in weather_results.items():
+            weather_data.append(f"{key}: {value}")
+
+        forecast_data = []
+        for item in res_forecast:
+            content = item.get("text", "")
+            if content:
+                try:
+                    data = json.loads(content)
+                    city = data.get("city", "Unknown City")
+                    forecast_list = data.get("forecast", [])
+                    parts = [f"Weather Forecast for {city}:"]
+                    for forecast in forecast_list:
+                        dt = forecast.get("datetime", "Unknown Time")
+                        temp = forecast.get("temperature", "N/A")
+                        weather = forecast.get("weather", "N/A")
+                        parts.append(f"- {dt}: {temp}°C, {weather}")
+                    forecast_data.append("\n".join(parts))
+                except json.JSONDecodeError:
+                    forecast_data.append(f"Invalid JSON content: {content}")
+            else:
+                forecast_data.append("No content available.")
+
+        # === TAMBAHAN: join list jadi string sebelum dipakai ===
+        weather_text = "\n".join(weather_data)
+        forecast_text = "\n".join(forecast_data)
+
+    except Exception as e:
+        weather_text = (
+            f"Weather information could not be retrieved due to an error: {str(e)}"
+        )
+        forecast_text = (
+            f"Forecast information could not be retrieved due to an error: {str(e)}"
+        )
+
+    return {
+        "weather_results": f"""Current Weather:
+{weather_text}
+
+Forecast:
+{forecast_text}
+""",
+        "messages": [AIMessage(content="Weather information fetched")],
+    }
+
+
+# =========================
 # Itinerary Agent
 # =========================
 
@@ -228,6 +291,9 @@ Flight Results:
 
 Hotel Results:
 {state['hotel_results']}
+
+Weather Results:
+{state['weather_results']}
 
 Make the itinerary practical, budget-aware, and easy to follow.
 """
@@ -263,6 +329,9 @@ Flights:
 
 Hotels:
 {state['hotel_results']}
+
+Weather Results:
+{state['weather_results']}
 
 Itinerary:
 {state['itinerary']}
@@ -302,12 +371,14 @@ graph = StateGraph(TravelState)
 
 graph.add_node("flight_agent", flight_agent)
 graph.add_node("hotel_agent", hotel_agent)
+graph.add_node("weather_agent", weather_agent)
 graph.add_node("itinerary_agent", itinerary_agent)
 graph.add_node("final_agent", final_agent)
 
 graph.add_edge(START, "flight_agent")
 graph.add_edge("flight_agent", "hotel_agent")
-graph.add_edge("hotel_agent", "itinerary_agent")
+graph.add_edge("hotel_agent", "weather_agent")
+graph.add_edge("weather_agent", "itinerary_agent")
 graph.add_edge("itinerary_agent", "final_agent")
 graph.add_edge("final_agent", END)
 
@@ -341,6 +412,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
             "user_query": user_input,
             "flight_results": "",
             "hotel_results": "",
+            "weather_results": "",
             "itinerary": "",
             "llm_calls": 0,
         },
@@ -354,6 +426,7 @@ def run_travel_agent(user_input: str, thread_id: str | None = None):
         "answer": final_answer,
         "flight_results": result.get("flight_results", ""),
         "hotel_results": result.get("hotel_results", ""),
+        "weather_results": result.get("weather_results", ""),
         "itinerary": result.get("itinerary", ""),
         "llm_calls": result.get("llm_calls", 0),
     }

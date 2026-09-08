@@ -51,15 +51,16 @@ if submitted:
                 )
                 st.caption(str(exc))
             else:
-                st.subheader("Hasil perjalanan")
-                st.markdown(result["answer"])
+                st.markdown("**Penerbangan**")
+                st.write(result["flight_results"] or "Tidak ada data penerbangan.")
+                st.markdown("**Hotel**")
+                st.write(result["hotel_results"] or "Tidak ada data hotel.")
+                st.write("**Cuaca**")
+                st.write(result["weather_results"] or "Tidak ada data cuaca.")
+                st.markdown("**Itinerary**")
+                st.write(result["itinerary"] or "Tidak ada itinerary.")
 
                 with st.expander("Lihat detail data pencarian"):
-                    st.markdown("**Penerbangan**")
-                    st.write(result["flight_results"] or "Tidak ada data penerbangan.")
-                    st.markdown("**Hotel**")
-                    st.write(result["hotel_results"] or "Tidak ada data hotel.")
-                    st.markdown("**Itinerary**")
-                    st.write(result["itinerary"] or "Tidak ada itinerary.")
+                    st.markdown(result["answer"])
 
                 st.caption(f"Thread: {result['thread_id']}")
