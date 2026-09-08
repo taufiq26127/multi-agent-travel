@@ -220,20 +220,6 @@ llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 # ==========================================
 
 
-def _message_text(content) -> str:
-    """Normalize LangChain message content for API and UI consumers."""
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = [
-            item.get("text", "")
-            for item in content
-            if isinstance(item, dict) and item.get("text")
-        ]
-        return "\n".join(parts)
-    return str(content)
-
-
 def extract_destination(query: str):
     prompt = f"""
     Extract only the destination city or country.
