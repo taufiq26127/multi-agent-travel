@@ -13,28 +13,28 @@ st.set_page_config(
 )
 
 st.title("✈️ MCP Traveler")
-st.caption("Buat rencana perjalanan lengkap dengan bantuan AI.")
+st.caption("Build your travel plan with the help of MCP and OpenWeather API.")
 
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = f"streamlit_{uuid.uuid4().hex}"
 
 with st.form("travel_form"):
     query = st.text_area(
-        "Ceritakan perjalanan yang Anda inginkan",
+        "Describe the travel you want to plan",
         placeholder=(
-            "Contoh: Rencanakan perjalanan 5 hari ke Bali dari Jakarta, "
-            "termasuk penerbangan dan hotel."
+            "Example: Plan a 5-day trip to Bali from Jakarta, "
+            "including flights and hotels."
         ),
         height=120,
     )
-    submitted = st.form_submit_button("Buat rencana perjalanan", type="primary")
+    submitted = st.form_submit_button("Make Travel Plan", type="primary")
 
 if submitted:
     query = query.strip()
     if not query:
-        st.warning("Silakan masukkan permintaan perjalanan terlebih dahulu.")
+        st.warning("Please enter a travel request first.")
     else:
-        with st.spinner("Sedang menyiapkan rencana perjalanan..."):
+        with st.spinner("Waiting for the travel plan..."):
             try:
                 response = requests.post(
                     f"{API_URL.rstrip('/')}/travel",
@@ -46,19 +46,19 @@ if submitted:
                 st.session_state.thread_id = result["thread_id"]
             except requests.RequestException as exc:
                 st.error(
-                    "Tidak dapat terhubung ke backend. "
-                    f"Pastikan FastAPI berjalan di {API_URL}."
+                    "Unable to connect to the backend. "
+                    f"Please ensure FastAPI is running at {API_URL}."
                 )
                 st.caption(str(exc))
             else:
-                st.markdown("**Penerbangan**")
-                st.write(result["flight_results"] or "Tidak ada data penerbangan.")
+                st.markdown("**Flights**")
+                st.write(result["flight_results"] or "No flight data available.")
                 st.markdown("**Hotel**")
-                st.write(result["hotel_results"] or "Tidak ada data hotel.")
-                st.write("**Cuaca**")
-                st.write(result["weather_results"] or "Tidak ada data cuaca.")
+                st.write(result["hotel_results"] or "No hotel data available.")
+                st.write("**Weather**")
+                st.write(result["weather_results"] or "No weather data available.")
                 st.markdown("**Itinerary**")
-                st.write(result["itinerary"] or "Tidak ada itinerary.")
+                st.write(result["itinerary"] or "No itinerary available.")
 
                 with st.expander("Lihat detail data pencarian"):
                     st.markdown(result["answer"])
