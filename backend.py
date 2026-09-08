@@ -11,16 +11,18 @@ from langchain.messages import (
     HumanMessage,
     AIMessage,
 )
+import json
 import psycopg
 from psycopg.rows import dict_row
 from langgraph.checkpoint.postgres import PostgresSaver
 from typing import TypedDict, Annotated
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from mcp_client_test import tavily_mcp_search
+# from mcp_client_test import tavily_mcp_search
+from mcp_client import tavily_mcp_search, aviation_mcp_call
 
 # from tools.tavily_tool import tavily_search
-from tools.flight_tool import search_flights
+# from tools.flight_tool import search_flights
 
 
 def _message_text(content) -> str:
@@ -91,14 +93,72 @@ class TravelState(TypedDict):
 # Flight Agent
 # =========================
 
+# def flight_agent(state: TravelState):
+#     query = state["user_query"]
+#     flight_data = search_flights(query)
+
+#     return {
+#         "flight_results": flight_data,
+#         "messages": [AIMessage(content="Flight results fetched.")],
+#         "llm_calls": state.get("llm_calls", 0) + 1,
+#     }
+
+
+FLIGHT_AGENT_PROMPT = """
+    You are a travel flight agent expert.
+
+    User Query:
+    {query}
+
+    Airport Information:
+    {airport_data}
+
+    Airline Information:
+    {airline_data}
+
+    Generate:
+    1. Likely deparature airport
+    2. Likely arrival airport
+    3. Airlines serving this route
+    4. Typical flight duration
+    5. Estimated airface range
+    6. Peak season pricing warning
+    7. Booking advice
+
+    Return concise travel guidance dont give too much details, just give the most important information for the user to plan their trip about airports and flights and dont give recommendations about hotels or other aspects of the trip just focus on the flight information.
+"""
+
 
 def flight_agent(state: TravelState):
     query = state["user_query"]
-    flight_data = search_flights(query)
+
+    try:
+        airports = asyncio.run(aviation_mcp_call("list_airports"))
+
+        airlines = asyncio.run(aviation_mcp_call("list_airlines"))
+
+        prompt = FLIGHT_AGENT_PROMPT.format(
+            query=query,
+            airport_data=str(airports)[:3000],
+            airline_data=str(airlines)[:3000],
+        )
+
+        response = llm.invoke(
+            [
+                SystemMessage(content="You are an expert travel flight agent."),
+                HumanMessage(content=prompt),
+            ]
+        )
+
+        flights_data = _message_text(response.content)
+    except Exception as e:
+        flights_data = (
+            f"Flight information could not be retrieved due to an error: {str(e)}"
+        )
 
     return {
-        "flight_results": flight_data,
-        "messages": [AIMessage(content="Flight results fetched.")],
+        "flight_results": flights_data,
+        "messages": [AIMessage(content="Flight recommendations fetched.")],
         "llm_calls": state.get("llm_calls", 0) + 1,
     }
 
@@ -109,12 +169,41 @@ def flight_agent(state: TravelState):
 
 
 def hotel_agent(state: TravelState):
-    query = f"Best hotels for {state['user_query']}"
-    # use without mcp
-    # hotel_results = tavily_search(query)
+    print("\n INSIDE HOTEL AGENT \n")
 
-    # use with mcp
-    hotel_results = asyncio.run(tavily_mcp_search(query))
+    query = f"Best hotels for {state['user_query']}"
+
+    try:
+        hotels_data = asyncio.run(tavily_mcp_search(query))
+
+        print("\n[DEBUG] Raw hotels_data:", hotels_data)
+
+        # bongkar wrapper MCP kalau bentuknya list [{'type': 'text', 'text': '...'}]
+        if isinstance(hotels_data, list) and len(hotels_data) > 0:
+            first_item = hotels_data[0]
+            if isinstance(first_item, dict) and "text" in first_item:
+                hotels_data = json.loads(first_item["text"])
+
+        results = hotels_data.get("results", [])
+
+        hotel_lines = []
+        for i, r in enumerate(results, 1):
+            title = r.get("title", "Unknown Title")
+            url = r.get("url", "")
+            snippet = r.get("content", "")
+            if len(snippet) > 300:
+                snippet = snippet[:300].rsplit(" ", 1)[0] + "..."
+            hotel_lines.append(f"{i}. {title}\nURL: {url}\nSnippet: {snippet}\n")
+
+        hotel_results = (
+            "\n".join(hotel_lines) if hotel_lines else "Tidak ada hotel ditemukan."
+        )
+
+    except Exception as e:
+        hotel_results = (
+            f"Hotel information could not be retrieved due to an error: {str(e)}"
+        )
+
     return {
         "hotel_results": hotel_results,
         "messages": [AIMessage(content="Hotel information fetched.")],
