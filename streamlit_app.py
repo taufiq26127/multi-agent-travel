@@ -51,16 +51,17 @@ if submitted:
                 )
                 st.caption(str(exc))
             else:
-                st.markdown("**Flights**")
-                st.write(result["flight_results"] or "No flight data available.")
-                st.markdown("**Hotel**")
-                st.write(result["hotel_results"] or "No hotel data available.")
-                st.write("**Weather**")
-                st.write(result["weather_results"] or "No weather data available.")
-                st.markdown("**Itinerary**")
-                st.write(result["itinerary"] or "No itinerary available.")
+                st.success("Travel plan generated successfully!")
+                st.markdown(result["answer"])
 
                 with st.expander("Lihat detail data pencarian"):
-                    st.markdown(result["answer"])
+                    st.markdown("**Flights**")
+                    st.write(result["flight_results"] or "No flight data available.")
+                    st.markdown("**Hotel**")
+                    st.write(result["hotel_results"] or "No hotel data available.")
+                    st.write("**Weather**")
+                    st.write(result["weather_results"] or "No weather data available.")
+                    st.markdown("**Itinerary**")
+                    st.write(result["itinerary"] or "No itinerary available.")
 
                 st.caption(f"Thread: {result['thread_id']}")
