@@ -204,3 +204,6 @@ experimentation, but the active workflow in `backend.py` currently uses the
 - `uv`/`uvx` to run the AviationStack MCP.
 - API keys: `GOOGLE_API_KEY`, `TAVILY_API_KEY`, `AVIATIONSTACK_API_KEY`, and
   `OPENWEATHER_API_KEY`.
+
+Copy `.env.example` to `.env` and fill in the values locally. The `.env` file
+is ignored by Git and must never be committed.

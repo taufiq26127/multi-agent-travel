@@ -1,6 +1,7 @@
 import json
 import os
 import asyncio
+from urllib.parse import urlencode
 import certifi
 from dotenv import load_dotenv
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -20,7 +21,8 @@ client = MultiServerMCPClient(
     {
         "tavily": {
             "transport": "streamable_http",
-            "url": f"https://mcp.tavily.com/mcp/?tavilyApiKey={TAVILY_API_KEY}",
+            "url": "https://mcp.tavily.com/mcp/?"
+            + urlencode({"tavilyApiKey": TAVILY_API_KEY or ""}),
         }
     }
 )

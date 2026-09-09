@@ -1,9 +1,10 @@
 import json
 import os
 import asyncio
+import sys
 from pathlib import Path
 import traceback
-import traceback
+from urllib.parse import urlencode
 import certifi
 import shutil
 from dotenv import load_dotenv
@@ -32,8 +33,11 @@ WEATHER_SERVER_PATH = PROJECT_DIR / "custom_weather_mcp.py"
 # Preserve the complete Windows environment when starting
 # local stdio MCP servers.
 AVIATION_ENV = os.environ.copy()
-AVIATION_ENV["AVIATION_STACK_API_KEY"] = AVIATION_STACK_API_KEY or ""
-UVX_COMMAND = shutil.which("uvx") or r"C:\Users\LENOVO\.local\bin\uvx.exe"
+AVIATION_ENV["AVIATIONSTACK_API_KEY"] = AVIATION_STACK_API_KEY or ""
+UVX_COMMAND = os.getenv("UVX_COMMAND") or shutil.which("uvx") or "uvx"
+TAVILY_URL = "https://mcp.tavily.com/mcp/?" + urlencode(
+    {"tavilyApiKey": TAVILY_API_KEY or ""}
+)
 
 
 # ==========================================
@@ -44,7 +48,7 @@ client = MultiServerMCPClient(
     {
         "tavily": {
             "transport": "streamable_http",
-            "url": ("https://mcp.tavily.com/mcp/" f"?tavilyApiKey={TAVILY_API_KEY}"),
+            "url": TAVILY_URL,
         },
         "aviationstack": {
             "transport": "stdio",
@@ -54,8 +58,8 @@ client = MultiServerMCPClient(
         },
         "weather": {
             "transport": "stdio",
-            "command": r"C:\Belajar\Projek\mcp-traveler\.venv\Scripts\python.exe",
-            "args": [r"C:\Belajar\Projek\mcp-traveler\custom_weather_mcp.py"],
+            "command": sys.executable,
+            "args": [str(WEATHER_SERVER_PATH)],
             "env": {
                 "OPENWEATHER_API_KEY": OPENWEATHER_API_KEY,
             },
