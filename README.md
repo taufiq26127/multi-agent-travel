@@ -1,51 +1,51 @@
 # MCP Traveler
 
-MCP Traveler is an AI-powered travel planning application. Users simply
-describe their travel needs in natural language, and the system gathers
-flight, hotel, and weather information before creating an itinerary and final
-recommendations.
+MCP Traveler adalah aplikasi perencana perjalanan berbasis kecerdasan buatan.
+Pengguna cukup menjelaskan kebutuhan perjalanannya dalam bahasa alami, lalu
+sistem mengumpulkan informasi penerbangan, hotel, dan cuaca sebelum menyusun
+itinerari dan rekomendasi akhir.
 
-The project uses:
+Proyek ini menggunakan:
 
-- **LangGraph** to orchestrate the agent workflow sequentially.
-- **Google Gemini**, through `ChatGoogleGenerativeAI`, to extract locations,
-  analyze search results, and create itineraries.
-- **Model Context Protocol (MCP)** to connect agents to Tavily, AviationStack,
-  and a local weather server.
-- **FastAPI** as the backend API.
-- **Streamlit** as the web interface.
-- **PostgreSQL** as the LangGraph checkpointer so context associated with a
-  `thread_id` can be resumed.
+- **LangGraph** untuk mengorkestrasi alur kerja agen secara berurutan.
+- **Google Gemini**, melalui `ChatGoogleGenerativeAI`, untuk mengekstraksi
+  lokasi, menganalisis hasil pencarian, dan menyusun itinerari.
+- **Model Context Protocol (MCP)** untuk menghubungkan agen dengan Tavily,
+  AviationStack, dan server cuaca lokal.
+- **FastAPI** sebagai API *backend*.
+- **Streamlit** sebagai antarmuka web.
+- **PostgreSQL** sebagai *checkpointer* LangGraph agar konteks yang terkait
+  dengan sebuah `thread_id` dapat dilanjutkan kembali.
 
-## Streamlit UI Preview
+## Pratinjau Antarmuka Streamlit
 
-The following screenshots show examples of the Streamlit user interface:
+Tangkapan layar berikut memperlihatkan contoh antarmuka pengguna Streamlit:
 
-### Travel request
+### Permintaan perjalanan
 
-![Streamlit travel request UI](images/1.png)
+![Antarmuka Streamlit: permintaan perjalanan](images/1.png)
 
-### Flight information
+### Informasi penerbangan
 
-![Streamlit flight information UI](images/2.png)
+![Antarmuka Streamlit: informasi penerbangan](images/2.png)
 
-### Hotel suggestions
+### Saran hotel
 
-![Streamlit hotel suggestions UI](images/3.png)
+![Antarmuka Streamlit: saran hotel](images/3.png)
 
-### Weather information
+### Informasi cuaca
 
-![Streamlit weather information UI](images/4.png)
+![Antarmuka Streamlit: informasi cuaca](images/4.png)
 
-### Day-by-day itinerary
+### Itinerari harian
 
-![Streamlit itinerary UI](images/5.png)
+![Antarmuka Streamlit: itinerari](images/5.png)
 
-### Final recommendations
+### Rekomendasi akhir
 
-![Streamlit final recommendations UI](images/6.png)
+![Antarmuka Streamlit: rekomendasi akhir](images/6.png)
 
-## High-level architecture
+## Arsitektur Tingkat Tinggi
 
 ```text
 Streamlit UI
@@ -56,18 +56,18 @@ FastAPI (/travel)
      v
 LangGraph Travel Workflow
      |
-     +--> AviationStack MCP ----> airport and airline data
-     +--> Tavily MCP ------------> hotel search results
-     +--> Local Weather MCP -----> current weather and forecast
+     +--> AviationStack MCP ----> data bandara dan maskapai
+     +--> Tavily MCP ------------> hasil pencarian hotel
+     +--> Local Weather MCP -----> cuaca saat ini dan prakiraan
      |
      v
 PostgreSQL Checkpointer
 ```
 
-## Agent workflow
+## Alur Kerja Agen
 
-The workflow runs synchronously and sequentially. Each agent's output is stored
-in `TravelState` and becomes the input for the next agent.
+Alur kerja berjalan secara sinkron dan berurutan. Keluaran setiap agen
+disimpan dalam `TravelState` dan menjadi masukan bagi agen berikutnya.
 
 ```mermaid
 flowchart TD
@@ -79,131 +79,120 @@ flowchart TD
     F --> G([END])
 ```
 
-### 1. Flight Agent
+### 1. Agen Penerbangan (*Flight Agent*)
 
-Implementation: `flight_agent` in `backend.py`.
+Implementasi: `flight_agent` pada `backend.py`.
 
-Process:
+Proses:
 
-1. Reads `user_query`.
-2. Calls the AviationStack MCP through `list_airports`.
-3. Calls the AviationStack MCP through `list_airlines`.
-4. Sends the data to Gemini.
-5. Produces departure and arrival airport information, airlines serving the
-   route, estimated duration, estimated fare range, peak-season warnings, and
-   booking advice.
-6. Stores the result in `state["flight_results"]`.
+1. Membaca `user_query`.
+2. Memanggil MCP AviationStack melalui `list_airports`.
+3. Memanggil MCP AviationStack melalui `list_airlines`.
+4. Mengirim data tersebut ke Gemini.
+5. Menghasilkan informasi bandara keberangkatan dan kedatangan, maskapai yang
+   melayani rute, estimasi durasi, estimasi kisaran tarif, peringatan musim
+   ramai, dan saran pemesanan.
+6. Menyimpan hasilnya pada `state["flight_results"]`.
 
-This agent provides flight guidance. Ticket prices are estimates and may not
-always be available from a live API.
+Agen ini memberikan panduan penerbangan. Harga tiket bersifat estimasi dan
+belum tentu selalu tersedia dari API langsung.
 
-### 2. Hotel Agent
+### 2. Agen Hotel (*Hotel Agent*)
 
-Implementation: `hotel_agent` in `backend.py`.
+Implementasi: `hotel_agent` pada `backend.py`.
 
-Process:
+Proses:
 
-1. Builds the query `Best hotels for <user_query>`.
-2. Calls `tavily_search` through the Tavily MCP.
-3. Takes up to five search results.
-4. Normalizes the MCP results and displays each hotel's title, URL, and
-   snippet.
-5. Stores the result in `state["hotel_results"]`.
+1. Menyusun kueri `Best hotels for <user_query>`.
+2. Memanggil `tavily_search` melalui MCP Tavily.
+3. Mengambil hingga lima hasil pencarian.
+4. Menormalkan hasil MCP dan menampilkan judul, URL, serta cuplikan setiap
+   hotel.
+5. Menyimpan hasilnya pada `state["hotel_results"]`.
 
-Tavily is used as a web search engine; its results are not a booking inventory
-or confirmation of room availability.
+Tavily digunakan sebagai mesin pencari web; hasilnya bukan inventaris
+pemesanan dan bukan konfirmasi ketersediaan kamar.
 
-### 3. Weather Agent
+### 3. Agen Cuaca (*Weather Agent*)
 
-Implementation: `weather_agent` in `backend.py`.
+Implementasi: `weather_agent` pada `backend.py`.
 
-Process:
+Proses:
 
-1. Asks Gemini to extract the destination city or country from `user_query`.
-2. Calls `get_current_weather` on the local Weather MCP.
-3. Calls `get_forecast` on the local Weather MCP.
-4. Combines the current weather with the first five forecast entries.
-5. Stores the result in `state["weather_results"]`.
+1. Meminta Gemini mengekstraksi kota atau negara tujuan dari `user_query`.
+2. Memanggil `get_current_weather` pada MCP Cuaca lokal.
+3. Memanggil `get_forecast` pada MCP Cuaca lokal.
+4. Menggabungkan cuaca saat ini dengan lima entri prakiraan pertama.
+5. Menyimpan hasilnya pada `state["weather_results"]`.
 
-### 4. Itinerary Agent
+### 4. Agen Itinerari (*Itinerary Agent*)
 
-Implementation: `itinerary_agent` in `backend.py`.
+Implementasi: `itinerary_agent` pada `backend.py`.
 
-Process:
+Proses:
 
-1. Reads the user's query.
-2. Reads flight, hotel, and weather results from the state.
-3. Asks Gemini to create a complete, practical, easy-to-follow itinerary that
-   considers the budget.
-4. Stores the daily results in `state["itinerary"]`.
+1. Membaca kueri pengguna.
+2. Membaca hasil penerbangan, hotel, dan cuaca dari status (*state*).
+3. Meminta Gemini menyusun itinerari yang lengkap, praktis, mudah diikuti,
+   dan mempertimbangkan anggaran.
+4. Menyimpan hasil harian pada `state["itinerary"]`.
 
-### 5. Final Response Agent
+### 5. Agen Jawaban Akhir (*Final Response Agent*)
 
-Implementation: `final_agent` in `backend.py`.
+Implementasi: `final_agent` pada `backend.py`.
 
-Process:
+Proses:
 
-1. Combines the user's request with the flight, hotel, weather, and itinerary
-   results.
-2. Asks Gemini to create an easy-to-read final answer.
-3. The answer is instructed to include Trip Summary, Flight Information,
-   Hotel Suggestions, Day-by-Day Itinerary, Estimated Budget, and Final
+1. Menggabungkan permintaan pengguna dengan hasil penerbangan, hotel, cuaca,
+   dan itinerari.
+2. Meminta Gemini menyusun jawaban akhir yang mudah dibaca.
+3. Jawaban diinstruksikan memuat Trip Summary, Flight Information, Hotel
+   Suggestions, Day-by-Day Itinerary, Estimated Budget, dan Final
    Recommendations.
-4. Returns the final answer as `answer` in the API response.
+4. Mengembalikan jawaban akhir sebagai `answer` pada respons API.
 
-## MCP servers and tools
+## Server dan Alat MCP
 
-All server configurations are located in `mcp_client.py` and managed by
-`MultiServerMCPClient` from `langchain-mcp-adapters`.
+Seluruh konfigurasi server terdapat pada `mcp_client.py` dan dikelola oleh
+`MultiServerMCPClient` dari `langchain-mcp-adapters`.
 
-| MCP server      | Transport           | Source                        | Tools used                              | Agent   |
-| --------------- | ------------------- | ----------------------------- | --------------------------------------- | ------- |
-| `tavily`        | Streamable HTTP     | `https://mcp.tavily.com/mcp/` | `tavily_search`                         | Hotel   |
-| `aviationstack` | stdio via `uvx`     | package `aviationstack-mcp`   | `list_airports`, `list_airlines`        | Flight  |
-| `weather`       | stdio               | `custom_weather_mcp.py`       | `get_current_weather`, `get_forecast`  | Weather |
+| Server MCP      | Transport           | Sumber                        | Alat yang digunakan                     | Agen      |
+| --------------- | ------------------- | ----------------------------- | --------------------------------------- | --------- |
+| `tavily`        | Streamable HTTP     | `https://mcp.tavily.com/mcp/` | `tavily_search`                         | Hotel     |
+| `aviationstack` | stdio via `uvx`     | paket `aviationstack-mcp`     | `list_airports`, `list_airlines`        | Penerbangan |
+| `weather`       | stdio               | `custom_weather_mcp.py`       | `get_current_weather`, `get_forecast`  | Cuaca     |
 
-### Local Weather MCP
+### MCP Cuaca Lokal
 
-`custom_weather_mcp.py` creates a `FastMCP("Weather MCP Server")` server and
-provides:
+`custom_weather_mcp.py` membuat server `FastMCP("Weather MCP Server")` dan
+menyediakan:
 
-- `get_current_weather(city)`: calls OpenWeather and returns the temperature,
-  feels-like temperature, humidity, conditions, and wind speed.
-- `get_forecast(city)`: calls OpenWeather and returns the first five forecast
-  entries.
+- `get_current_weather(city)`: memanggil OpenWeather dan mengembalikan suhu,
+  suhu yang dirasakan, kelembapan, kondisi cuaca, dan kecepatan angin.
+- `get_forecast(city)`: memanggil OpenWeather dan mengembalikan lima entri
+  prakiraan pertama.
 
-### Local flight utility
+### Utilitas Penerbangan Lokal
 
-`tools/flight_tool.py` contains utilities for resolving locations to IATA
-codes (using the `airportsdata` database, country aliases, and `pycountry`) as
-well as AviationStack constants. This utility is useful for development and
-experimentation, but the active workflow in `backend.py` currently uses the
-`list_airports` and `list_airlines` MCP tools directly.
+`tools/flight_tool.py` berisi utilitas untuk menerjemahkan lokasi menjadi kode
+IATA (menggunakan basis data `airportsdata`, alias negara, dan `pycountry`)
+serta konstanta AviationStack. Utilitas ini berguna untuk pengembangan dan
+eksperimen, tetapi alur kerja aktif pada `backend.py` saat ini langsung
+menggunakan alat MCP `list_airports` dan `list_airlines`.
 
-## Project structure
+## Struktur Proyek
 
 ```text
 .
-├── backend.py              # TravelState, agents, LangGraph, PostgreSQL checkpointer
-├── main.py                 # FastAPI app and HTTP endpoint
-├── mcp_client.py           # Client configuration and MCP server adapters
-├── custom_weather_mcp.py   # Local weather MCP server
-├── streamlit_app.py        # Streamlit UI
-├── mcp_client_test.py      # Simple Tavily MCP client example
+├── backend.py              # TravelState, agen, LangGraph, checkpointer PostgreSQL
+├── main.py                 # Aplikasi FastAPI dan endpoint HTTP
+├── mcp_client.py           # Konfigurasi klien dan adaptor server MCP
+├── custom_weather_mcp.py   # Server MCP cuaca lokal
+├── streamlit_app.py        # Antarmuka Streamlit
+├── mcp_client_test.py      # Contoh sederhana klien MCP Tavily
 ├── tools/
-│   └── flight_tool.py      # Location/IATA resolution utility
-├── requirements.txt        # pip dependency list
-├── pyproject.toml          # Project metadata and dependencies
-└── async.ipynb             # Async experiments
+│   └── flight_tool.py      # Utilitas resolusi lokasi/IATA
+├── requirements.txt        # Daftar dependensi pip
+├── pyproject.toml          # Metadata dan dependensi proyek
+└── async.ipynb             # Eksperimen asinkron
 ```
-
-## Prerequisites
-
-- Python **3.12 or newer**.
-- A PostgreSQL instance accessible by the application.
-- `uv`/`uvx` to run the AviationStack MCP.
-- API keys: `GOOGLE_API_KEY`, `TAVILY_API_KEY`, `AVIATIONSTACK_API_KEY`, and
-  `OPENWEATHER_API_KEY`.
-
-Copy `.env.example` to `.env` and fill in the values locally. The `.env` file
-is ignored by Git and must never be committed.
